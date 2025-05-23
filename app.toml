@@ -1,3 +1,0 @@
-source_db = "postgres://user:password@host:port/source_db"
-destination_db = "postgres://user:password@host:port/destination_db"
-limit = 1000
