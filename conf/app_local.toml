@@ -1,0 +1,10 @@
+# this is the app configuration.
+
+[runtime]
+env_prefix = "DB"
+
+# env variables, variable name = default value if any.
+[runtime.env_variables]
+SOURCE_DB="postgres://user:password@host:port/source_db"
+DESTINATION_DB="postgres://user:password@host:port/destination_db"
+LIMIT="100"

@@ -1,3 +1,6 @@
+//go:generate go run ./tooling/envs-gen "conf/app.toml" "conf/env.go" "conf"
+//go:generate go fmt ./...
+
 package main
 
 import (
@@ -5,11 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/dev-sid-dev/db-ds-extractor/conf"
 	"github.com/jackc/pgx/v5"
-	"github.com/pelletier/go-toml"
-	"os"
 )
 
 type Task struct {
@@ -38,38 +41,27 @@ type Task struct {
 	Price                   *string
 }
 
-type Config struct {
-	SourceDB      string `toml:"source_db"`
-	DestinationDB string `toml:"destination_db"`
-	Limit         int    `toml:"limit"`
-}
-
-func loadConfig(path string) (*Config, error) {
-	config := &Config{}
-	file, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	err = toml.Unmarshal(file, config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
 func main() {
-	config, err := loadConfig("app.toml")
+	sourceDB := conf.Get("SOURCE_DB")
+	destDB := conf.Get("DESTINATION_DB")
+	limitStr := conf.Get("LIMIT")
+
+	fmt.Println("SOURCE_DB:", sourceDB)
+	fmt.Println("DESTINATION_DB:", destDB)
+	fmt.Println("LIMIT:", limitStr)
+
+	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatalf("Invalid LIMIT value: %v", err)
 	}
 
-	srcConn, err := pgx.Connect(context.Background(), config.SourceDB)
+	srcConn, err := pgx.Connect(context.Background(), sourceDB)
 	if err != nil {
 		log.Fatalf("Failed to connect to source DB: %v", err)
 	}
 	defer srcConn.Close(context.Background())
 
-	dstConn, err := pgx.Connect(context.Background(), config.DestinationDB)
+	dstConn, err := pgx.Connect(context.Background(), destDB)
 	if err != nil {
 		log.Fatalf("Failed to connect to destination DB: %v", err)
 	}
@@ -81,7 +73,7 @@ func main() {
 		brand, primary_color_family_label, product, price
 		FROM public.tasks
 		LIMIT %d
-	`, config.Limit)
+	`, limit)
 
 	rows, err := srcConn.Query(context.Background(), query)
 	if err != nil {
